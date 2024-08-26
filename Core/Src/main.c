@@ -22,11 +22,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* Demo includes. */
-
 #include "logger.h"
-
 #include "dwt.h"
-
+// AGREGADO DE INCLUDE
+#include "stm32f1xx.h"
 /* Application includes. */
 
 #include "app.h"
@@ -58,10 +57,15 @@ UART_HandleTypeDef huart2;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
+//AGREGADO
+void check_button(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
-
+//AGREGADO
+volatile uint32_t buttonPressCount = 0;
+volatile uint32_t lastDebounceTime = 0;
+const uint32_t debounceDelay = 50; // 50 ms de delay para evitar rebotes
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 extern void initialise_monitor_handles(void);
@@ -100,6 +104,15 @@ int main(void)
   /* USER CODE BEGIN 2 */
   /* Application Init */
   app_init();
+  //AGREGADO
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  // Configurar el pin PA0 como entrada (Botón)
+      GPIO_InitTypeDef GPIO_InitStruct = {0};
+      GPIO_InitStruct.Pin = GPIO_PIN_0;
+      GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+      GPIO_InitStruct.Pull = GPIO_NOPULL;
+      HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -109,6 +122,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  check_button();
 	  /* Application Update */
 	  app_update();
   }
@@ -119,6 +133,22 @@ int main(void)
   * @brief System Clock Configuration
   * @retval None
   */
+//AGREGADO
+void check_button(void) {
+    uint32_t currentTick = HAL_GetTick();
+
+    // Leer el estado del botón
+    GPIO_PinState buttonState = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+
+    // Verificar si el botón está presionado
+    if (buttonState == GPIO_PIN_SET && (currentTick - lastDebounceTime) > debounceDelay) {
+        buttonPressCount++;  // Incrementar el contador
+        lastDebounceTime = currentTick;  // Actualizar el tiempo del último debounce
+
+        // Implementar la acción deseada (por ejemplo, enviar un mensaje, realizar un cálculo, etc.)
+    }
+}
+
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
